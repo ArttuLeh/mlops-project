@@ -11,7 +11,7 @@ def train_model():
     weather_response = requests.get("https://api.open-meteo.com/v1/forecast?latitude=60.98208&longitude=25.66611&hourly=temperature_2m,windspeed_10m&past_days=31")
     df_elec = pd.DataFrame(elec_response.json()["prices"])
     df_weather = pd.DataFrame(weather_response.json()["hourly"])
-    dataSet = pd.read_csv("data/combined3.2.csv")
+    #dataSet = pd.read_csv("data/combined3.2.csv")
 
 
     # preprocess data
@@ -37,10 +37,10 @@ def train_model():
 
     # features (X) and target (y)
     feature_names = ['hour', 'dayofweek', 'month', 'temp', 'wind']
-    #X = df[feature_names]
-    #y = df['price']
-    X = dataSet[feature_names]
-    y = dataSet['price']
+    X = df[feature_names]
+    y = df['price']
+    #X = dataSet[feature_names]
+    #y = dataSet['price']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
