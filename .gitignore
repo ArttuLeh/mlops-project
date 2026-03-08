@@ -15,3 +15,5 @@ sahko_data.csv
 
 # OS files
 .DS_Store
+
+data/
