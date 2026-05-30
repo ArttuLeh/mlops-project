@@ -7,6 +7,7 @@ import os
 app = FastAPI()
 MODEL_FILE = 'electricity_price_model.joblib'
 
+# load model at startup if the file exists
 if os.path.exists(MODEL_FILE):
     # load the trained model
     model_data = joblib.load(MODEL_FILE)
@@ -28,10 +29,15 @@ class PredictionInput(pydantic.BaseModel):
 
 @app.get("/")
 def read_root():
+    """Health check endpoint. Returns API status."""
     return {"status": "Electricity Price Prediction API is running. Go to /docs for Swagger UI."}
 
 @app.post("/predict")
 def predict_price(input_data: PredictionInput):
+    """
+    Predicts electricity price based on time and weather inputs.
+    Returns estimated price in s/kWh with a confidence range based on model MAE.
+    """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded on server.")
 
@@ -44,6 +50,7 @@ def predict_price(input_data: PredictionInput):
         # make prediction
         prediction = float(model.predict(input_df)[0])
 
+        # calculate price range using model MAE as margin of error
         lower_bound = round(prediction - mae, 2)
         upper_bound = round(prediction + mae, 2)
 

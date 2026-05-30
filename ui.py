@@ -21,9 +21,11 @@ if st.button('Predict Electricity Price'):
         "wind": wind
     }
 
+    # send input data to the FastAPI prediction endpoint
     response = requests.post("http://localhost:8000/predict", json=input_data)
     result = response.json()
-    
+
+    # extract estimated price from response
     price = result["prediction"]["estimated_price"]
     
     # display result
