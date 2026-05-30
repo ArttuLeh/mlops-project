@@ -1,18 +1,29 @@
 import pandas as pd
 import requests
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 import joblib
 
 def train_model():
+    # load environment variables
+    load_dotenv()
+
     # get data
     elec_response = requests.get("https://api.porssisahko.net/v1/latest-prices.json")
     weather_response = requests.get("https://api.open-meteo.com/v1/forecast?latitude=60.98208&longitude=25.66611&hourly=temperature_2m,windspeed_10m&past_days=31")
     df_elec = pd.DataFrame(elec_response.json()["prices"])
     df_weather = pd.DataFrame(weather_response.json()["hourly"])
-    #dataSet = pd.read_csv("data/combined3.2.csv")
+    #dataSet = pd.read_csv("data/combined3.7.csv")
+    # create database connection using environment variables
+    engine = create_engine(f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+                          f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
 
+    # load historical training data from database
+    dataSet = pd.read_sql("SELECT price, time, temp, wind, hour, dayofweek, month FROM electricity_data", engine)
 
     # preprocess data
     df_weather = pd.DataFrame({
@@ -29,18 +40,20 @@ def train_model():
 
     # preprocess data
     df.drop(columns=['endDate'], inplace=True)
+    df.drop(columns=['startDate'], inplace=True)
+    
     # Convert timestamps to hours and days of the week and months
-    df['hour'] = df['startDate'].dt.hour
-    df['dayofweek'] = df['startDate'].dt.dayofweek
-    df['month'] = df['startDate'].dt.month 
+    df['hour'] = df['time'].dt.hour
+    df['dayofweek'] = df['time'].dt.dayofweek
+    df['month'] = df['time'].dt.month 
 
 
     # features (X) and target (y)
     feature_names = ['hour', 'dayofweek', 'month', 'temp', 'wind']
-    X = df[feature_names]
-    y = df['price']
-    #X = dataSet[feature_names]
-    #y = dataSet['price']
+    #X = df[feature_names]
+    #y = df['price']
+    X = dataSet[feature_names]
+    y = dataSet['price']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -59,7 +72,12 @@ def train_model():
 
     # save model
     joblib.dump({'model': model, 'feature_names': feature_names, 'mae': mae, 'r2': r2}, 'electricity_price_model.joblib')
-    df.to_csv('sahko_data.csv', index=False, encoding='utf-8')
+    
+    # append only new rows to avoid duplicates in the database
+    existing = pd.read_sql("SELECT time FROM electricity_data", engine)
+    new_rows = df[~df['time'].isin(existing['time'])]
+    new_rows.to_sql('electricity_data', engine, if_exists='append', index=False)
+    #df.to_csv('sahko_data.csv', index=False, encoding='utf-8')
     print("Model trained and saved as 'electricity_price_model.joblib'")
 
 if __name__ == "__main__":

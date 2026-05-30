@@ -5,3 +5,6 @@ scikit-learn
 pandas
 requests
 streamlit
+psycopg2-binary
+sqlalchemy
+python-dotenv
