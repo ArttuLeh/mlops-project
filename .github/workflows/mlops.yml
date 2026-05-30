@@ -10,6 +10,28 @@ jobs:
   test_pipeline:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: ${{ secrets.DB_NAME }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,6 +46,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Seed database with historical data
+        run: |
+          python - <<'EOF'
+          import pandas as pd
+          from sqlalchemy import create_engine
+          import os
+
+          engine = create_engine(
+            f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+            f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+          )
+          df = pd.read_csv("data/combined3.8.csv")
+          df.to_sql("electricity_data", engine, if_exists="replace", index=False)
+          print(f"Seeded {len(df)} rows")
+          EOF
+
       - name: Run model training
         run: python train.py
 
@@ -34,4 +72,4 @@ jobs:
           else
             echo "Error: Model file not found."
             exit 1
-          fi
+          fi          fi
