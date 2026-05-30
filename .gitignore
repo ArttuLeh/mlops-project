@@ -19,3 +19,4 @@ sahko_data.csv
 .DS_Store
 
 data/
+!data/combined3.8.csv
