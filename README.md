@@ -18,6 +18,10 @@ Production-ready starter for training and serving an electricity price predictio
 - [data/](data): Notebooks and sample data
 - [electricity_price.ipynb](electricity_price.ipynb): Exploration notebook
 
+## Screenshot from UI
+<img width="1470" height="815" alt="Screenshot" src="https://github.com/user-attachments/assets/e8648bfe-6b6d-4c29-9264-78871d36df91" />
+
+
 ## Quickstart (Local)
 1) Create environment and install dependencies
 
